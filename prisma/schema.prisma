@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cart {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  commodityId Int
+  quantity    Int
+  Commodity   Commodity @relation(fields: [commodityId], references: [id])
+}
+
+model Commodity {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  info      String   @db.VarChar(255)
+  price     String   @db.VarChar(255)
+  title     String   @db.VarChar(255)
+  updatedAt DateTime
+  imageUrl  String?  @db.VarChar(255)
+  Cart      Cart[]
+}
+
+model diesel_schema_migrations {
+  version String   @id @db.VarChar(50)
+  run_on  DateTime @default(now()) @db.Timestamp(6)
+
+  @@map("__diesel_schema_migrations")
+}
+
+model permissions {
+  id               Int                @id @default(autoincrement())
+  permissions_name String             @db.VarChar
+  role_permissions role_permissions[]
+}
+
+model role_permissions {
+  id             Int         @id @default(autoincrement())
+  role_id        Int
+  permissions_id Int
+  permissions    permissions @relation(fields: [permissions_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roles          roles       @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model roles {
+  id               Int                @id @default(autoincrement())
+  role_name        String             @db.VarChar
+  role_permissions role_permissions[]
+}
+
+model todo {
+  id         Int       @id @default(autoincrement())
+  title      String    @db.VarChar(255)
+  content    String
+  competed   Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model token_blacklist {
+  id         Int       @id @default(autoincrement())
+  token      String
+  created_at DateTime? @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamp(6)
+}
+
+model users {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username         String   @db.VarChar
+  password         String   @db.VarChar
+  voice_attachment Boolean
+  created_at       DateTime @default(now()) @db.Timestamp(6)
+  updated_at       DateTime @default(now()) @db.Timestamp(6)
+  role_id          String   @db.VarChar
+}
