@@ -27,12 +27,6 @@ model Commodity {
   Cart      Cart[]
 }
 
-model diesel_schema_migrations {
-  version String   @id @db.VarChar(50)
-  run_on  DateTime @default(now()) @db.Timestamp(6)
-
-  @@map("__diesel_schema_migrations")
-}
 
 model permissions {
   id               Int                @id @default(autoincrement())
@@ -52,29 +46,17 @@ model roles {
   id               Int                @id @default(autoincrement())
   role_name        String             @db.VarChar
   role_permissions role_permissions[]
+  users            users[]
 }
 
-model todo {
-  id         Int       @id @default(autoincrement())
-  title      String    @db.VarChar(255)
-  content    String
-  competed   Boolean?  @default(false)
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @default(now()) @db.Timestamptz(6)
-}
-
-model token_blacklist {
-  id         Int       @id @default(autoincrement())
-  token      String
-  created_at DateTime? @default(dbgenerated("(now() AT TIME ZONE 'utc'::text)")) @db.Timestamp(6)
-}
 
 model users {
-  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   username         String   @db.VarChar
   password         String   @db.VarChar
   voice_attachment Boolean
   created_at       DateTime @default(now()) @db.Timestamp(6)
   updated_at       DateTime @default(now()) @db.Timestamp(6)
-  role_id          String   @db.VarChar
+  role_id          Int   
+  role             roles     @relation(fields: [role_id], references: [id])            
 }

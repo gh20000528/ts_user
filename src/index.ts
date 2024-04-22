@@ -1,49 +1,38 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import bodyParser from 'body-parser';
-import cookieSession from 'cookie-session';
-import { UserRoutes } from './routers/user';
 import cors from 'cors';
 import session from 'express-session';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
-dotenv.config();
+import { UserRoutes } from './routers/user';
 
-// DO NOT WRITE
+dotenv.config();
 
 class Server {
     app: express.Express = express();
 
     constructor() {
-        this.app.use(bodyParser.urlencoded({ extended: true }))
-        this.app.use(cookieSession({ keys: ['laskdjf'] }))
-        this.app.use(cookieParser())
+        this.app.use(express.json());  // 添加这行来解析 JSON 请求体
+        this.app.use(bodyParser.urlencoded({ extended: true }));  // 确保这是正确的
+        this.app.use(cookieParser());
         this.app.use(cors({
-            origin: 'http://localhost:3000',
+            origin: 'http://localhost:3000',  // 适当更新你的前端地址
             credentials: true,
-            methods: ['GET', 'POST']
-        }))
-        this.app.use(session({
-            secret: 'keyboard cat',
-            resave: true,
-            saveUninitialized: false,
-            cookie: {
-                httpOnly: true,
-                maxAge: 30000
-            }
-        }))
+            methods: ['GET', 'POST', 'PUT', 'DELETE']
+        }));
         this.setUpRoutes();
     }
 
     private setUpRoutes(): void {
         const userRoutes = new UserRoutes();
-        this.app.use('/api/user', userRoutes.router)
+        this.app.use('/api/user', userRoutes.router);
     }
 
     start(): void {
         this.app.listen(3001, () => {
-            console.log('Listening on port 3000');
-        })
+            console.log('Server is running on port 3001');
+        });
     }
-} 
+}
 
 new Server().start();

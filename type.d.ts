@@ -4,6 +4,6 @@ import 'express-session';
 declare module 'express-session' {
   export interface SessionData {
     token?: string;  // 添加 token 屬性
-    captcha?: string;
+    captcha?: any;
   }
 }

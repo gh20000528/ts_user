@@ -18,26 +18,38 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const express_validator_1 = require("express-validator");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const svg_captcha_1 = __importDefault(require("svg-captcha"));
+const uuid_1 = require("uuid");
 const prisma = new client_1.PrismaClient();
 const userList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userList = yield prisma.users.findMany();
     res.status(200).json({ data: userList });
 });
 exports.userList = userList;
+function cleanString(input) {
+    return input.replace(/\0/g, '');
+}
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, password, voice_attachment, role_id } = req.body;
     try {
         const errors = (0, express_validator_1.validationResult)(req);
+        const { username, password, voice_attachment, role_id } = req.body;
+        console.log(`username: ${username}, password: ${password} voice: ${voice_attachment} role_id: ${role_id}`);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return res.status(400).json({ message: "valid error" });
+        }
+        const parsedRoleId = parseInt(role_id, 10);
+        if (isNaN(parsedRoleId)) {
+            return res.status(400).json({ message: "Invalid role_id, it must be a number." });
         }
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
-        const newUser = yield prisma.users.create({
+        const cleanUsername = cleanString(username);
+        const cleanPassword = cleanString(password);
+        console.log(cleanUsername, cleanPassword);
+        yield prisma.users.create({
             data: {
                 username,
                 password: hashedPassword,
                 voice_attachment,
-                role_id
+                role_id: parsedRoleId
             }
         });
         res.status(200).json({ message: "create user success" });
@@ -47,6 +59,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.register = register;
+const captchaStore = {};
 // get captcha
 const captcha = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const captchaOptions = {
@@ -59,19 +72,32 @@ const captcha = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         complexity: 10, // 复杂度，越高越难
     };
     const captcha = svg_captcha_1.default.create(captchaOptions);
-    res.cookie("captcha", captcha.text, { httpOnly: true, secure: false });
-    // 發送驗證碼
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.send(captcha.data);
+    const captcha_id = (0, uuid_1.v4)();
+    captchaStore[captcha_id] = {
+        captcha: captcha.text,
+        expires: new Date(Date.now() + 60000)
+    };
+    res.status(200).json({ captcha: captcha.data, captcha_id });
 });
 exports.captcha = captcha;
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, password, captcha } = req.body;
+    const { username, password, captcha, captchaId } = req.body;
     try {
-        const saveCaptcha = req.cookies["captcha"];
-        console.log(saveCaptcha);
+        const captchaRecord = captchaStore[captchaId];
+        if (!captchaRecord || captchaRecord.expires < new Date()) {
+            return res.status(400).json({ message: "Invalid or expired captcha" });
+        }
+        if (captcha !== captchaRecord.captcha) {
+            return res.status(401).json({ message: "Invalid captcha" });
+        }
+        delete captchaStore[captchaId];
         const user = yield prisma.users.findFirst({
-            where: { username }
+            where: { username },
+            select: {
+                id: true,
+                username: true,
+                password: true
+            }
         });
         if (!user) {
             return res.status(404).json({ message: "User not found!!" });
@@ -80,8 +106,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!isPasswordValid) {
             return res.status(401).json({ message: "Invalid password" });
         }
-        const token = jsonwebtoken_1.default.sign({ id: user.id, username: user.username }, 'your_secret_key', { expiresIn: '1h' });
-        req.session.token = token;
+        const token = jsonwebtoken_1.default.sign({ id: user.id, username: user.username }, 'kenkone_evas', { expiresIn: '1h' });
         res.status(200).json({ message: "login success", token });
     }
     catch (error) {
@@ -89,8 +114,19 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.login = login;
+const tokenBlack = new Set();
 const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
+        const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1];
+        console.log(token);
+        if (token) {
+            tokenBlack.add(token);
+            res.status(200).json({ message: "Logged out success" });
+        }
+        else {
+            res.status(400).json({ message: "No token provided" });
+        }
     }
     catch (error) {
         return res.status(500).json({ message: `Logout api error ${error}` });

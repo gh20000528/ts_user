@@ -8,19 +8,47 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.permissionList = exports.validPermission = void 0;
-const validPermission = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.checkPermission = void 0;
+const client_1 = require("@prisma/client");
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const prisma = new client_1.PrismaClient();
+const checkPermission = (reqPermission) => (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     try {
+        const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1];
+        if (!token) {
+            return res.status(401).json({ message: "Authentication token is required" });
+        }
+        const decoded = jsonwebtoken_1.default.verify(token, 'kenkone_evas');
+        const userId = decoded.id;
+        const user = yield prisma.users.findFirst({
+            where: { id: userId },
+            include: {
+                role: {
+                    include: {
+                        role_permissions: {
+                            include: {
+                                permissions: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        const hasPermission = (_b = user === null || user === void 0 ? void 0 : user.role) === null || _b === void 0 ? void 0 : _b.role_permissions.some(rp => rp.permissions.permissions_name === reqPermission);
+        if (hasPermission) {
+            next();
+        }
+        else {
+            return res.status(403).json({ message: "Access denied. You do not have the required permission." });
+        }
     }
     catch (error) {
+        return res.status(500).json({ message: `permission vaild error: ${error}` });
     }
 });
-exports.validPermission = validPermission;
-const permissionList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-    }
-    catch (error) {
-    }
-});
-exports.permissionList = permissionList;
+exports.checkPermission = checkPermission;
