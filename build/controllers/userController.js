@@ -12,27 +12,40 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logout = exports.login = exports.captcha = exports.register = exports.userList = void 0;
+exports.userinfo = exports.logout = exports.login = exports.captcha = exports.register = exports.userList = void 0;
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const express_validator_1 = require("express-validator");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const svg_captcha_1 = __importDefault(require("svg-captcha"));
 const uuid_1 = require("uuid");
+var responseStatus;
+(function (responseStatus) {
+    responseStatus[responseStatus["error"] = 400] = "error";
+    responseStatus[responseStatus["not_found"] = 404] = "not_found";
+    responseStatus[responseStatus["success"] = 200] = "success";
+})(responseStatus || (responseStatus = {}));
 const prisma = new client_1.PrismaClient();
+// get user list
 const userList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userList = yield prisma.users.findMany();
-    res.status(200).json({ data: userList });
+    try {
+        const userList = yield prisma.users.findMany();
+        res.status(responseStatus.success).json({ data: userList });
+    }
+    catch (error) {
+        res.status(responseStatus.error).json({ message: `get user list error ${error}` });
+    }
 });
 exports.userList = userList;
+// 清除req雜值
 function cleanString(input) {
     return input.replace(/\0/g, '');
 }
+// post register
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const errors = (0, express_validator_1.validationResult)(req);
         const { username, password, voice_attachment, role_id } = req.body;
-        console.log(`username: ${username}, password: ${password} voice: ${voice_attachment} role_id: ${role_id}`);
         if (!errors.isEmpty()) {
             return res.status(400).json({ message: "valid error" });
         }
@@ -64,11 +77,13 @@ const captchaStore = {};
 const captcha = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const captchaOptions = {
         size: 4, // 验证码长度
-        noise: 15, // 噪点数量
+        noise: 5, // 噪点数量
         color: true, // 验证码字符是否有颜色
-        background: '#cc9966', // 背景颜色
-        fontSize: 50, // 文字大小
-        ignoreChars: '0o1i', // 排除易混淆的字符
+        background: '#cc9999', // 背景颜色
+        fontSize: 70, // 文字大小
+        ignoreChars: '0o1it', // 排除易混淆的字符
+        width: 200,
+        height: 80,
         complexity: 10, // 复杂度，越高越难
     };
     const captcha = svg_captcha_1.default.create(captchaOptions);
@@ -80,6 +95,7 @@ const captcha = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.status(200).json({ captcha: captcha.data, captcha_id });
 });
 exports.captcha = captcha;
+// post login
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, password, captcha, captchaId } = req.body;
     try {
@@ -115,6 +131,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.login = login;
 const tokenBlack = new Set();
+// post logout
 const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -133,3 +150,44 @@ const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.logout = logout;
+// get user info
+const userinfo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
+    try {
+        // get token
+        const token = (_b = req.headers.authorization) === null || _b === void 0 ? void 0 : _b.split(" ")[1];
+        if (!token) {
+            return res.status(401).json({ message: "Authentication token is required" });
+        }
+        const decoded = jsonwebtoken_1.default.verify(token, 'kenkone_evas');
+        const userId = decoded.id;
+        // select sql
+        const user = yield prisma.users.findFirst({
+            where: { id: userId }
+        });
+        if (!user) {
+            return res.status(responseStatus.not_found).json({ message: "get user info error: user not found" });
+        }
+        const user_role = yield prisma.roles.findFirst({
+            where: { id: user === null || user === void 0 ? void 0 : user.role_id }
+        });
+        const user_permission = yield prisma.role_permissions.findMany({
+            where: { role_id: user === null || user === void 0 ? void 0 : user.role_id },
+            include: {
+                permissions: true
+            }
+        });
+        const permissionList = user_permission.map(per => per.permissions.permissions_name);
+        const userinfo = {
+            username: decoded.username,
+            role: user_role === null || user_role === void 0 ? void 0 : user_role.role_name,
+            permission: permissionList
+        };
+        console.log(userinfo);
+        res.status(responseStatus.success).json({ user: userinfo });
+    }
+    catch (error) {
+        return res.status(responseStatus.error).json({ message: `userinifo api error: ${error}` });
+    }
+});
+exports.userinfo = userinfo;

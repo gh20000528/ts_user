@@ -21,6 +21,7 @@ class UserRoutes {
         this.router.post('/login', userController_1.login);
         this.router.post('/logout', userController_1.logout);
         this.router.get('/captcha', userController_1.captcha);
+        this.router.get('/userinfo', userController_1.userinfo);
     }
 }
 exports.UserRoutes = UserRoutes;

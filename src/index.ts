@@ -16,7 +16,7 @@ class Server {
         this.app.use(bodyParser.urlencoded({ extended: true }));  // 确保这是正确的
         this.app.use(cookieParser());
         this.app.use(cors({
-            origin: 'http://localhost:3000',  // 适当更新你的前端地址
+            origin: true,  // 适当更新你的前端地址
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE']
         }));

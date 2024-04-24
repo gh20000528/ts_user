@@ -6,7 +6,11 @@ import jwt from 'jsonwebtoken';
 import svgCaptcha from 'svg-captcha';
 import { v4 as uuidv4 } from 'uuid';
 
-
+enum responseStatus {
+    error = 400,
+    not_found = 404,
+    success = 200
+}
 
 const prisma = new PrismaClient()
 
@@ -24,23 +28,34 @@ interface loginReq {
     captchaId: string
 }
 
-
-export const userList = async (req: Request, res: Response) => {
-    const userList = await prisma.users.findMany();
-
-    res.status(200).json({ data: userList })
+interface IUserDetails {
+    username: string,
+    role: string | undefined,
+    permission: string[]
 }
 
+// get user list
+export const userList = async (req: Request, res: Response) => {
+    try {
+        const userList = await prisma.users.findMany();
+
+        res.status(responseStatus.success).json({ data: userList })
+    } catch (error) {
+        res.status(responseStatus.error).json({ message: `get user list error ${error}` })
+    }
+    
+}
+
+// 清除req雜值
 function cleanString(input: any) {
     return input.replace(/\0/g, '');
 }
-
+// post register
 export const register = async (req: Request, res: Response) => {
     try {
         const errors = validationResult(req);
             
         const { username, password, voice_attachment, role_id} = req.body
-        console.log(`username: ${username}, password: ${password} voice: ${voice_attachment} role_id: ${role_id}`);
 
         if (!errors.isEmpty()) {
             return res.status(400).json({ message: "valid error" });
@@ -78,11 +93,13 @@ const captchaStore: CaptchaStore = {};
 export const captcha = async (req: Request, res: Response) => {
     const captchaOptions = {
         size: 4, // 验证码长度
-        noise: 15, // 噪点数量
+        noise: 5, // 噪点数量
         color: true, // 验证码字符是否有颜色
-        background: '#cc9966', // 背景颜色
-        fontSize: 50, // 文字大小
-        ignoreChars: '0o1i', // 排除易混淆的字符
+        background: '#cc9999', // 背景颜色
+        fontSize: 70, // 文字大小
+        ignoreChars: '0o1it', // 排除易混淆的字符
+        width: 200,
+        height: 80,
         complexity: 10, // 复杂度，越高越难
     };
     const captcha = svgCaptcha.create(captchaOptions);
@@ -95,7 +112,7 @@ export const captcha = async (req: Request, res: Response) => {
 
     res.status(200).json({ captcha: captcha.data, captcha_id })
 }
-
+// post login
 export const login = async (req: Request, res: Response) => {
     const  {username, password, captcha, captchaId} = req.body as loginReq
     
@@ -138,7 +155,7 @@ export const login = async (req: Request, res: Response) => {
 }
 
 const tokenBlack = new Set();
-
+// post logout
 export const logout = async (req: Request, res: Response) => {
     try {
         const token = req.headers.authorization?.split(" ")[1];
@@ -152,5 +169,51 @@ export const logout = async (req: Request, res: Response) => {
         }
     } catch (error) {
         return res.status(500).json({ message: `Logout api error ${error}` })
+    }
+}
+
+// get user info
+export const userinfo = async (req: Request, res: Response) => {
+    try {
+        // get token
+        const token = req.headers.authorization?.split(" ")[1]
+        if (!token) {
+            return res.status(401).json({ message: "Authentication token is required" })
+        }
+
+        const decoded = jwt.verify(token, 'kenkone_evas') as { id: string, username: string}
+        const userId = decoded.id
+
+
+        // select sql
+        const user = await prisma.users.findFirst({
+            where: { id: userId }
+        })        
+        if (!user) {
+            return res.status(responseStatus.not_found).json({ message: "get user info error: user not found" })
+        }
+
+        const user_role = await prisma.roles.findFirst({ 
+            where: {id: user?.role_id}
+        })
+        const user_permission = await prisma.role_permissions.findMany({
+            where: {role_id: user?.role_id},
+            include: {
+                permissions: true
+            }
+        })
+        const permissionList = user_permission.map(per => per.permissions.permissions_name)
+        
+        const userinfo: IUserDetails = {
+            username: decoded.username,
+            role: user_role?.role_name,
+            permission: permissionList
+        }
+        
+        console.log(userinfo);
+        
+        res.status(responseStatus.success).json({ user: userinfo })
+    } catch (error) {
+        return res.status(responseStatus.error).json({ message: `userinifo api error: ${error}` })
     }
 }
