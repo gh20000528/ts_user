@@ -37,8 +37,16 @@ interface IUserDetails {
 // get user list
 export const userList = async (req: Request, res: Response) => {
     try {
-        const userList = await prisma.users.findMany();
-
+        const userList = await prisma.users.findMany({
+            select: {
+                id: true,
+                username: true, 
+                voice_attachment: true,
+                password: false, 
+                role_id: true
+            }
+        });
+        
         res.status(responseStatus.success).json({ data: userList })
     } catch (error) {
         res.status(responseStatus.error).json({ message: `get user list error ${error}` })
