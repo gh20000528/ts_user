@@ -34,7 +34,7 @@ export const checkPermission = (reqPermission: string) => async (req: Request, r
         if (hasPermission) {
             next()
         } else {
-            return res.status(403).json({ message: "Access denied. You do not have the required permission." })
+            return res.status(401).json({ message: "Access denied. You do not have the required permission." })
         }
     } catch (error) {
         return res.status(500).json({ message: `permission vaild error: ${error}`})

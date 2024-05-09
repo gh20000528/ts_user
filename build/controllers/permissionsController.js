@@ -44,7 +44,7 @@ const checkPermission = (reqPermission) => (req, res, next) => __awaiter(void 0,
             next();
         }
         else {
-            return res.status(403).json({ message: "Access denied. You do not have the required permission." });
+            return res.status(401).json({ message: "Access denied. You do not have the required permission." });
         }
     }
     catch (error) {

@@ -9,6 +9,7 @@ const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const user_1 = require("./routers/user");
+const role_1 = require("./routers/role");
 dotenv_1.default.config();
 class Server {
     constructor() {
@@ -25,7 +26,9 @@ class Server {
     }
     setUpRoutes() {
         const userRoutes = new user_1.UserRoutes();
+        const roleRoutes = new role_1.RoleRoutes();
         this.app.use('/api/user', userRoutes.router);
+        this.app.use('/api/role', roleRoutes.router);
     }
     start() {
         this.app.listen(3001, () => {
