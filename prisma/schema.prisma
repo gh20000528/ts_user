@@ -28,7 +28,6 @@ model roles {
   users            users[]
 }
 
-
 model users {
   id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   username         String   @db.VarChar
@@ -36,6 +35,7 @@ model users {
   voice_attachment Boolean
   created_at       DateTime @default(now()) @db.Timestamp(6)
   updated_at       DateTime @default(now()) @db.Timestamp(6)
-  role_id          Int   
-  role             roles     @relation(fields: [role_id], references: [id])            
+  role_id          Int
+  deleted          Boolean? @default(false)
+  role             roles    @relation(fields: [role_id], references: [id])
 }

@@ -12,24 +12,44 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userinfo = exports.logout = exports.login = exports.captcha = exports.register = exports.userList = void 0;
+exports.softDeletedUser = exports.userinfo = exports.logout = exports.login = exports.captcha = exports.register = exports.userList = void 0;
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const express_validator_1 = require("express-validator");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const svg_captcha_1 = __importDefault(require("svg-captcha"));
 const uuid_1 = require("uuid");
+const logger_1 = __importDefault(require("../tools/logger"));
+const prisma = new client_1.PrismaClient();
+// all type
 var responseStatus;
 (function (responseStatus) {
     responseStatus[responseStatus["error"] = 400] = "error";
     responseStatus[responseStatus["not_found"] = 404] = "not_found";
     responseStatus[responseStatus["success"] = 200] = "success";
 })(responseStatus || (responseStatus = {}));
-const prisma = new client_1.PrismaClient();
+// tool function
+const captchaStore = {};
+const tokenBlack = new Set();
+// 清除req雜值
+function cleanString(input) {
+    return input.replace(/\0/g, '');
+}
+// valid password
+const validpassword = [
+    (0, express_validator_1.check)('password')
+        .isLength({ min: 8 }).withMessage("密碼要超過八碼")
+        .matches(/[a-zA-z]/).withMessage("密碼中要包含至少一個英文字")
+        .matches(/\d/).withMessage("密碼中要包含至少一個數字")
+];
+// api function
 // get user list
 const userList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userList = yield prisma.users.findMany({
+            where: {
+                deleted: false,
+            },
             select: {
                 id: true,
                 username: true,
@@ -38,49 +58,50 @@ const userList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 role_id: true
             }
         });
+        logger_1.default.info('fetch user list success');
         res.status(responseStatus.success).json({ data: userList });
     }
     catch (error) {
+        logger_1.default.error(`user list api error: ${error}`);
         res.status(responseStatus.error).json({ message: `get user list error ${error}` });
     }
 });
 exports.userList = userList;
-// 清除req雜值
-function cleanString(input) {
-    return input.replace(/\0/g, '');
-}
 // post register
-const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const errors = (0, express_validator_1.validationResult)(req);
-        const { username, password, voice_attachment, role_id } = req.body;
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ message: "valid error" });
-        }
-        const parsedRoleId = parseInt(role_id, 10);
-        if (isNaN(parsedRoleId)) {
-            return res.status(400).json({ message: "Invalid role_id, it must be a number." });
-        }
-        const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
-        const cleanUsername = cleanString(username);
-        const cleanPassword = cleanString(password);
-        console.log(cleanUsername, cleanPassword);
-        yield prisma.users.create({
-            data: {
-                username,
-                password: hashedPassword,
-                voice_attachment,
-                role_id: parsedRoleId
+exports.register = [
+    ...validpassword,
+    (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const errors = (0, express_validator_1.validationResult)(req);
+            const { username, password, voice_attachment, role_id } = req.body;
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ message: "valid error" });
             }
-        });
-        res.status(200).json({ message: "create user success" });
-    }
-    catch (error) {
-        return res.status(500).json({ message: `Register api error: ${error}` });
-    }
-});
-exports.register = register;
-const captchaStore = {};
+            const parsedRoleId = parseInt(role_id, 10);
+            if (isNaN(parsedRoleId)) {
+                return res.status(400).json({ message: "Invalid role_id, it must be a number." });
+            }
+            const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
+            const cleanUsername = cleanString(username);
+            const cleanPassword = cleanString(password);
+            console.log(cleanUsername, cleanPassword);
+            yield prisma.users.create({
+                data: {
+                    username,
+                    password: hashedPassword,
+                    voice_attachment,
+                    role_id: parsedRoleId
+                }
+            });
+            logger_1.default.info(`create user success username: ${username}`);
+            res.status(200).json({ message: "create user success" });
+        }
+        catch (error) {
+            logger_1.default.error(`register api error: ${error}`);
+            return res.status(500).json({ message: `Register api error: ${error}` });
+        }
+    })
+];
 // get captcha
 const captcha = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const captchaOptions = {
@@ -100,6 +121,7 @@ const captcha = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         captcha: captcha.text,
         expires: new Date(Date.now() + 60000)
     };
+    logger_1.default.info("get captcha success");
     res.status(200).json({ captcha: captcha.data, captcha_id });
 });
 exports.captcha = captcha;
@@ -131,14 +153,15 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             return res.status(401).json({ message: "Invalid password" });
         }
         const token = jsonwebtoken_1.default.sign({ id: user.id, username: user.username }, 'kenkone_evas', { expiresIn: '1h' });
+        logger_1.default.info(`login success username: ${username}`);
         res.status(200).json({ message: "login success", token });
     }
     catch (error) {
+        logger_1.default.error(`login api error ${error}`);
         return res.status(500).json({ message: `login api error: ${error}` });
     }
 });
 exports.login = login;
-const tokenBlack = new Set();
 // post logout
 const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -147,13 +170,16 @@ const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         console.log(token);
         if (token) {
             tokenBlack.add(token);
+            logger_1.default.info(`logout success`);
             res.status(200).json({ message: "Logged out success" });
         }
         else {
+            logger_1.default.error("logout api error: no token provided");
             res.status(400).json({ message: "No token provided" });
         }
     }
     catch (error) {
+        logger_1.default.error(`logout api error: ${error}`);
         return res.status(500).json({ message: `Logout api error ${error}` });
     }
 });
@@ -191,11 +217,29 @@ const userinfo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             role: user_role === null || user_role === void 0 ? void 0 : user_role.role_name,
             permission: permissionList
         };
-        console.log(userinfo);
+        logger_1.default.info(`fetch user info username: ${decoded.username}`);
         res.status(responseStatus.success).json({ user: userinfo });
     }
     catch (error) {
+        logger_1.default.error(`user info api error: ${error}`);
         return res.status(responseStatus.error).json({ message: `userinifo api error: ${error}` });
     }
 });
 exports.userinfo = userinfo;
+// delete user
+const softDeletedUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { Uid } = req.body;
+        yield prisma.users.update({
+            where: { id: Uid },
+            data: { deleted: true }
+        });
+        logger_1.default.info(`deleted user id: ${Uid}`);
+        res.status(responseStatus.success).json({ message: "User soft-deleted success" });
+    }
+    catch (error) {
+        logger_1.default.error(`deleted user api error: ${error}`);
+        res.status(responseStatus.error).json({ message: "Soft deleted error" });
+    }
+});
+exports.softDeletedUser = softDeletedUser;

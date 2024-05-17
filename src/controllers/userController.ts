@@ -1,19 +1,19 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
-import { validationResult } from 'express-validator';
+import { check, validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import svgCaptcha from 'svg-captcha';
 import { v4 as uuidv4 } from 'uuid';
+import logger from '../tools/logger';
+const prisma = new PrismaClient()
 
+// all type
 enum responseStatus {
     error = 400,
     not_found = 404,
     success = 200
 }
-
-const prisma = new PrismaClient()
-
 interface CaptchaStore {
     [key: string]: {
         captcha: string;
@@ -34,10 +34,33 @@ interface IUserDetails {
     permission: string[]
 }
 
+// tool function
+const captchaStore: CaptchaStore = {};
+
+const tokenBlack = new Set();
+
+// 清除req雜值
+function cleanString(input: any) {
+    return input.replace(/\0/g, '');
+}
+
+// valid password
+const validpassword = [
+    check('password')
+        .isLength({ min: 8 }).withMessage("密碼要超過八碼")
+        .matches(/[a-zA-z]/).withMessage("密碼中要包含至少一個英文字")
+        .matches(/\d/).withMessage("密碼中要包含至少一個數字")
+]
+
+
+// api function
 // get user list
 export const userList = async (req: Request, res: Response) => {
     try {
         const userList = await prisma.users.findMany({
+            where: {
+                deleted: false,
+            },
             select: {
                 id: true,
                 username: true, 
@@ -46,20 +69,22 @@ export const userList = async (req: Request, res: Response) => {
                 role_id: true
             }
         });
-        
+
+        logger.info('fetch user list success')
         res.status(responseStatus.success).json({ data: userList })
     } catch (error) {
+        logger.error(`user list api error: ${error}`)
         res.status(responseStatus.error).json({ message: `get user list error ${error}` })
     }
     
 }
 
-// 清除req雜值
-function cleanString(input: any) {
-    return input.replace(/\0/g, '');
-}
+
+
 // post register
-export const register = async (req: Request, res: Response) => {
+export const register = [
+    ...validpassword,
+    async (req: Request, res: Response) => {
     try {
         const errors = validationResult(req);
             
@@ -89,13 +114,14 @@ export const register = async (req: Request, res: Response) => {
             }
         })
 
+        logger.info(`create user success username: ${username}`)
         res.status(200).json({ message: "create user success" })
     } catch (error) {
+        logger.error(`register api error: ${error}`)
         return res.status(500).json({ message: `Register api error: ${error}` })
     }
 }
-
-const captchaStore: CaptchaStore = {};
+]
 
 // get captcha
 export const captcha = async (req: Request, res: Response) => {
@@ -117,7 +143,8 @@ export const captcha = async (req: Request, res: Response) => {
         captcha: captcha.text,
         expires: new Date(Date.now() + 60000)
     };
-
+    
+    logger.info("get captcha success")
     res.status(200).json({ captcha: captcha.data, captcha_id })
 }
 // post login
@@ -155,14 +182,16 @@ export const login = async (req: Request, res: Response) => {
         }
 
         const token = jwt.sign({id: user.id, username: user.username }, 'kenkone_evas' , {expiresIn: '1h'})
-
+        
+        logger.info(`login success username: ${username}`)
         res.status(200).json({ message: "login success", token})
     } catch (error) {
+        logger.error(`login api error ${error}`)
         return res.status(500).json({ message: `login api error: ${error}` })
     }
 }
 
-const tokenBlack = new Set();
+
 // post logout
 export const logout = async (req: Request, res: Response) => {
     try {
@@ -171,11 +200,14 @@ export const logout = async (req: Request, res: Response) => {
         
         if (token) {
             tokenBlack.add(token)
+            logger.info(`logout success`)
             res.status(200).json({ message: "Logged out success" })
         } else {
+            logger.error("logout api error: no token provided")
             res.status(400).json({ message: "No token provided" })
         }
     } catch (error) {
+        logger.error(`logout api error: ${error}`)
         return res.status(500).json({ message: `Logout api error ${error}` })
     }
 }
@@ -218,10 +250,29 @@ export const userinfo = async (req: Request, res: Response) => {
             permission: permissionList
         }
         
-        console.log(userinfo);
-        
+        logger.info(`fetch user info username: ${decoded.username}`)
         res.status(responseStatus.success).json({ user: userinfo })
     } catch (error) {
+        logger.error(`user info api error: ${error}`)
         return res.status(responseStatus.error).json({ message: `userinifo api error: ${error}` })
+    }
+}
+
+
+// delete user
+export const softDeletedUser= async (req: Request, res: Response) => {
+    try {
+        const { Uid } = req.body
+
+        await prisma.users.update({
+            where: { id: Uid },
+            data: { deleted: true }
+        })
+
+        logger.info(`deleted user id: ${Uid}`)
+        res.status(responseStatus.success).json({ message: "User soft-deleted success" })
+    } catch (error) {
+        logger.error(`deleted user api error: ${error}`)
+        res.status(responseStatus.error).json({ message: "Soft deleted error" })
     }
 }
