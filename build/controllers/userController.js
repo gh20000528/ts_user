@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.softDeletedUser = exports.userinfo = exports.logout = exports.login = exports.captcha = exports.register = exports.userList = void 0;
+exports.editPassword = exports.softDeletedUser = exports.userinfo = exports.logout = exports.login = exports.captcha = exports.register = exports.userList = void 0;
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const express_validator_1 = require("express-validator");
@@ -47,19 +47,30 @@ const validpassword = [
 const userList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userList = yield prisma.users.findMany({
-            where: {
-                deleted: false,
-            },
             select: {
                 id: true,
                 username: true,
                 voice_attachment: true,
                 password: false,
-                role_id: true
+                role_id: true,
+                deleted: true,
+                role: {
+                    select: {
+                        role_name: true
+                    }
+                }
             }
         });
+        const formattedUser = userList.map(user => ({
+            id: user.id,
+            username: user.username,
+            voice_attachment: user.voice_attachment,
+            role: user.role_id,
+            delete: user.deleted,
+            roleName: user.role.role_name
+        }));
         logger_1.default.info('fetch user list success');
-        res.status(responseStatus.success).json({ data: userList });
+        res.status(responseStatus.success).json({ data: formattedUser });
     }
     catch (error) {
         logger_1.default.error(`user list api error: ${error}`);
@@ -221,13 +232,14 @@ const userinfo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.status(responseStatus.success).json({ user: userinfo });
     }
     catch (error) {
-        logger_1.default.error(`user info api error: ${error}`);
+        logger_1.default.error(`user info api error`);
         return res.status(responseStatus.error).json({ message: `userinifo api error: ${error}` });
     }
 });
 exports.userinfo = userinfo;
 // delete user
 const softDeletedUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(req.body);
     try {
         const { Uid } = req.body;
         yield prisma.users.update({
@@ -243,3 +255,34 @@ const softDeletedUser = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.softDeletedUser = softDeletedUser;
+// edit password
+exports.editPassword = [
+    ...validpassword,
+    (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const { data } = req.body;
+            console.log(req.body);
+            const user = yield prisma.users.findFirst({
+                where: { id: data.Uid }
+            });
+            if (!user) {
+                logger_1.default.error("edit passwrod error: User not found");
+                return res.status(responseStatus.not_found).json({ message: "get user info error: user not found" });
+            }
+            const hashedPassword = yield bcryptjs_1.default.hash(data.newPassword, 10);
+            yield prisma.users.update({
+                where: { id: data.Uid },
+                data: {
+                    password: hashedPassword,
+                    updated_at: new Date()
+                }
+            });
+            logger_1.default.info(`edit password api success username: ${user.username}`);
+            res.status(responseStatus.success).json({ message: "edit password success" });
+        }
+        catch (error) {
+            logger_1.default.error(`edit password api error: ${error}`);
+            res.status(responseStatus.error).json({ message: "edit password api error" });
+        }
+    })
+];

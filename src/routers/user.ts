@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { userList, register, captcha, login, logout, userinfo, softDeletedUser } from '../controllers/userController';
+import { userList, register, captcha, login, logout, userinfo, softDeletedUser, editPassword } from '../controllers/userController';
 import { body } from 'express-validator';
 import { checkPermission } from '../controllers/permissionsController';
 
@@ -22,6 +22,7 @@ export class UserRoutes {
         this.router.post('/logout', logout)
         this.router.get('/captcha', captcha)
         this.router.get('/userinfo', userinfo)
-        this.router.post('/softDeleted', checkPermission('deletedUser'), softDeletedUser)
+        this.router.post('/softDeleted', checkPermission('deletedUser'), softDeletedUser),
+        this.router.post('/editPassword', checkPermission('editPassword'), editPassword)
     }
 }

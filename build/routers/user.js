@@ -22,7 +22,8 @@ class UserRoutes {
         this.router.post('/logout', userController_1.logout);
         this.router.get('/captcha', userController_1.captcha);
         this.router.get('/userinfo', userController_1.userinfo);
-        this.router.post('/softDeleted', (0, permissionsController_1.checkPermission)('deletedUser'), userController_1.softDeletedUser);
+        this.router.post('/softDeleted', (0, permissionsController_1.checkPermission)('deletedUser'), userController_1.softDeletedUser),
+            this.router.post('/editPassword', (0, permissionsController_1.checkPermission)('editPassword'), userController_1.editPassword);
     }
 }
 exports.UserRoutes = UserRoutes;

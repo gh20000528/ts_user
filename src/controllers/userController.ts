@@ -58,20 +58,33 @@ const validpassword = [
 export const userList = async (req: Request, res: Response) => {
     try {
         const userList = await prisma.users.findMany({
-            where: {
-                deleted: false,
-            },
             select: {
                 id: true,
                 username: true, 
                 voice_attachment: true,
                 password: false, 
-                role_id: true
+                role_id: true,
+                deleted: true,
+                role: {
+                    select: {
+                        role_name: true
+                    }
+                }
             }
         });
 
+        const formattedUser = userList.map(user => ({
+            id: user.id,
+            username: user.username,
+            voice_attachment: user.voice_attachment,
+            role: user.role_id,
+            delete: user.deleted,
+            roleName: user.role.role_name
+        }))
+
+
         logger.info('fetch user list success')
-        res.status(responseStatus.success).json({ data: userList })
+        res.status(responseStatus.success).json({ data: formattedUser })
     } catch (error) {
         logger.error(`user list api error: ${error}`)
         res.status(responseStatus.error).json({ message: `get user list error ${error}` })
@@ -253,7 +266,7 @@ export const userinfo = async (req: Request, res: Response) => {
         logger.info(`fetch user info username: ${decoded.username}`)
         res.status(responseStatus.success).json({ user: userinfo })
     } catch (error) {
-        logger.error(`user info api error: ${error}`)
+        logger.error(`user info api error`)
         return res.status(responseStatus.error).json({ message: `userinifo api error: ${error}` })
     }
 }
@@ -261,6 +274,8 @@ export const userinfo = async (req: Request, res: Response) => {
 
 // delete user
 export const softDeletedUser= async (req: Request, res: Response) => {
+    console.log(req.body);
+    
     try {
         const { Uid } = req.body
 
@@ -276,3 +291,42 @@ export const softDeletedUser= async (req: Request, res: Response) => {
         res.status(responseStatus.error).json({ message: "Soft deleted error" })
     }
 }
+
+// edit password
+export const editPassword = [
+    ...validpassword,
+    async (req: Request, res: Response) => {
+        try {
+            const { data } = req.body
+
+            console.log(req.body);
+            
+
+            const user = await prisma.users.findFirst({ 
+                where: { id: data.Uid }
+            })
+    
+            
+            if (!user) {
+                logger.error("edit passwrod error: User not found")
+                return res.status(responseStatus.not_found).json({ message: "get user info error: user not found" })
+            }
+
+            const hashedPassword = await bcrypt.hash(data.newPassword, 10)
+            await prisma.users.update({
+                where: { id: data.Uid },
+                data: { 
+                    password: hashedPassword,
+                    updated_at: new Date()
+                }
+            })
+
+            logger.info(`edit password api success username: ${user.username}`)
+            res.status(responseStatus.success).json({ message: "edit password success"})
+        } catch (error) {
+            logger.error(`edit password api error: ${error}`)
+            res.status(responseStatus.error).json({ message: "edit password api error" })
+        }
+    }
+]
+

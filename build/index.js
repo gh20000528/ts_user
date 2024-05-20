@@ -10,6 +10,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const user_1 = require("./routers/user");
 const role_1 = require("./routers/role");
+const permission_1 = require("./routers/permission");
 dotenv_1.default.config();
 class Server {
     constructor() {
@@ -27,8 +28,10 @@ class Server {
     setUpRoutes() {
         const userRoutes = new user_1.UserRoutes();
         const roleRoutes = new role_1.RoleRoutes();
+        const permissionRoutes = new permission_1.PermissionRoutes();
         this.app.use('/api/user', userRoutes.router);
         this.app.use('/api/role', roleRoutes.router);
+        this.app.use('/api/permission', permissionRoutes.router);
     }
     start() {
         this.app.listen(3001, () => {

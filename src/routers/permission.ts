@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { permissionList, addUserPermission, deletedUserPermission } from '../controllers/permissionsController';
 
 export class PermissionRoutes {
     router: Router;
@@ -8,9 +9,8 @@ export class PermissionRoutes {
     }
 
     public initRoutes() {
-        this.router.get('/', )
-        this.router.post('/', )
-        this.router.post('/', )
-        this.router.get('/', )
+        this.router.get('/permission', permissionList)
+        this.router.post('/addUserPermission', addUserPermission)
+        this.router.post('/deletedUserPermission', deletedUserPermission)
     }
 }

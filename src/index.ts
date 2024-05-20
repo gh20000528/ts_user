@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { UserRoutes } from './routers/user';
 import { RoleRoutes } from './routers/role';
+import { PermissionRoutes } from './routers/permission';
 
 dotenv.config();
 
@@ -27,8 +28,10 @@ class Server {
     private setUpRoutes(): void {
         const userRoutes = new UserRoutes();
         const roleRoutes = new RoleRoutes();
+        const permissionRoutes = new PermissionRoutes();
         this.app.use('/api/user', userRoutes.router);
-        this.app.use('/api/role', roleRoutes.router)
+        this.app.use('/api/role', roleRoutes.router);
+        this.app.use('/api/permission', permissionRoutes.router);
     }
 
     start(): void {

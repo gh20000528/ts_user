@@ -1,0 +1,69 @@
+2024-05-17T06:37:19.246Z - error : logout api error: no token provided
+2024-05-17T07:40:10.081Z - error : user info api error: TokenExpiredError: jwt expired
+2024-05-17T08:48:53.330Z - error : user info api error: TokenExpiredError: jwt expired
+2024-05-17T09:53:38.553Z - error : user info api error: TokenExpiredError: jwt expired
+2024-05-17T13:23:21.004Z - error : user info api error: TokenExpiredError: jwt expired
+2024-05-20T03:14:07.300Z - error : user info api error: TokenExpiredError: jwt expired
+2024-05-20T03:57:19.289Z - error : edit password api error: PrismaClientValidationError: 
+Invalid `prisma.users.update()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/userController.js:271:32
+
+  268     logger_1.default.error("edit passwrod error: User not found");
+  269     return res.status(responseStatus.not_found).json({ message: "get user info error: user not found" });
+  270 }
+→ 271 yield prisma.users.update({
+        where: {
+          id: undefined,
+      ?   AND?: usersWhereInput | usersWhereInput[],
+      ?   OR?: usersWhereInput[],
+      ?   NOT?: usersWhereInput | usersWhereInput[],
+      ?   username?: StringFilter | String,
+      ?   password?: StringFilter | String,
+      ?   voice_attachment?: BoolFilter | Boolean,
+      ?   created_at?: DateTimeFilter | DateTime,
+      ?   updated_at?: DateTimeFilter | DateTime,
+      ?   role_id?: IntFilter | Int,
+      ?   deleted?: BoolNullableFilter | Boolean | Null,
+      ?   user_permissions?: User_permissionsListRelationFilter,
+      ?   role?: RolesRelationFilter | rolesWhereInput
+        },
+        data: {
+          password: undefined,
+          updated_at: new Date("2024-05-20T03:57:19.273Z")
+        }
+      })
+
+Argument `where` of type usersWhereUniqueInput needs at least one of `id` arguments. Available options are marked with ?.
+2024-05-20T03:58:02.000Z - error : edit password api error: PrismaClientValidationError: 
+Invalid `prisma.users.update()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/userController.js:272:32
+
+  269     logger_1.default.error("edit passwrod error: User not found");
+  270     return res.status(responseStatus.not_found).json({ message: "get user info error: user not found" });
+  271 }
+→ 272 yield prisma.users.update({
+        where: {
+          id: undefined,
+      ?   AND?: usersWhereInput | usersWhereInput[],
+      ?   OR?: usersWhereInput[],
+      ?   NOT?: usersWhereInput | usersWhereInput[],
+      ?   username?: StringFilter | String,
+      ?   password?: StringFilter | String,
+      ?   voice_attachment?: BoolFilter | Boolean,
+      ?   created_at?: DateTimeFilter | DateTime,
+      ?   updated_at?: DateTimeFilter | DateTime,
+      ?   role_id?: IntFilter | Int,
+      ?   deleted?: BoolNullableFilter | Boolean | Null,
+      ?   user_permissions?: User_permissionsListRelationFilter,
+      ?   role?: RolesRelationFilter | rolesWhereInput
+        },
+        data: {
+          password: undefined,
+          updated_at: new Date("2024-05-20T03:58:01.992Z")
+        }
+      })
+
+Argument `where` of type usersWhereUniqueInput needs at least one of `id` arguments. Available options are marked with ?.
+2024-05-20T04:22:22.776Z - error : user info api error: TokenExpiredError: jwt expired
+2024-05-20T06:37:28.748Z - error : user info api error: TokenExpiredError: jwt expired
+2024-05-20T07:37:56.542Z - error : user info api error: TokenExpiredError: jwt expired
