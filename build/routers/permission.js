@@ -10,8 +10,9 @@ class PermissionRoutes {
     }
     initRoutes() {
         this.router.get('/permission', permissionsController_1.permissionList);
-        this.router.post('/addUserPermission', permissionsController_1.addUserPermission);
-        this.router.post('/deletedUserPermission', permissionsController_1.deletedUserPermission);
+        this.router.post('/addRolePermission', permissionsController_1.addRolePermission);
+        this.router.post('/deleteRolePermission', permissionsController_1.deleteRolePermission);
+        this.router.get('/userRolePermission', permissionsController_1.UserRolePermission);
     }
 }
 exports.PermissionRoutes = PermissionRoutes;

@@ -260,8 +260,11 @@ exports.editPassword = [
     ...validpassword,
     (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
+            const errors = (0, express_validator_1.validationResult)(req);
             const { data } = req.body;
-            console.log(req.body);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ message: "valid error" });
+            }
             const user = yield prisma.users.findFirst({
                 where: { id: data.Uid }
             });

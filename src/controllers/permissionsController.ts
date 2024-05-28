@@ -8,8 +8,10 @@ const prisma = new PrismaClient()
 enum responseStatus {
     error = 400,
     not_found = 404,
-    success = 200
+    success = 200,
+    conflict = 401
 }
+
 
 // vaild permission
 export const checkPermission = (reqPermission: string) => async (req: Request, res: Response, next: NextFunction) => {
@@ -62,83 +64,140 @@ export const permissionList = async (req: Request, res: Response) => {
     }
 }
 
-
-// add user permission api
-export const addUserPermission = async (req: Request, res: Response) => {
+// role map 
+export const UserRolePermission = async (req: Request, res: Response) => {
     try {
-        const { userId, permissionName } = req.body;
+        const allRoles = await prisma.roles.findMany({
+            include: {
+                role_permissions: {
+                    include: {
+                        permissions: true,
+                    },
+                },
+            },
+        });
 
-        const permission = await prisma.permissions.findFirst({ 
-            where:{ permissions_name: permissionName }
-        })
-        if (!permission) {
-            logger.error("add user permission api error permission not found")
-            return res.status(responseStatus.not_found).json({ message: "permission not found" })
-        }
+        const data = allRoles.map(role => {
+            // 获取角色的所有权限
+            const rolePermissions = role.role_permissions.map(rp => ({
+                id: rp.permissions.id,
+                name: rp.permissions.permissions_name,
+            }));
 
-        const user = await prisma.users.findFirst({
-            where: { id: userId }
-        })
-        if (!user) {
-            logger.error("add user permission api error user not found")
-            return res.status(responseStatus.not_found).json({ message: "user not found" })
-        }
+            // 去除重复权限
+            const uniquePermissions = Array.from(new Map(rolePermissions.map(p => [p.id, p])).values());
 
-        await prisma.user_permissions.create({
-            data:{
-                user_id: userId,
-                permissions_id: permission.id
-            }
-        })
+            return {
+                id: role.id,
+                role_name: role.role_name,
+                permissions: uniquePermissions,
+            };
+        });
 
-        logger.info(`add user permission success username: ${user.username}`)
-        res.status(responseStatus.success).json({ message: "user add permission success" })
+
+
+        res.status(responseStatus.success).json({ data })
     } catch (error) {
-        logger.error(`add user permission api error: ${error}`)
-        res.status(responseStatus.error).json({ message: "add user permission api error" })
+        res.status(responseStatus.error).json({ message: "mapRolePermission api error" })
     }
 }
 
-// deleted user permission api
-export const deletedUserPermission = async (req: Request, res: Response) => {
+
+// add role permission api
+export const addRolePermission = async (req: Request, res: Response) => {
     try {
-        const { userId, permissionName } = req.body
+        const { roleId, permissionName } = req.body;
 
-        const permission = await prisma.permissions.findFirst({ 
-            where:{ permissions_name: permissionName }
-        })
+        console.log(roleId, permissionName);
+        
+
+        const permission = await prisma.permissions.findFirst({
+            where: { permissions_name: permissionName }
+        });
+        // valid permission
         if (!permission) {
-            logger.error("deleted user permission api error permission not found")
-            return res.status(responseStatus.not_found).json({ message: "permission not found" })
+            logger.error("add role permission api error permission not found");
+            return res.status(responseStatus.not_found).json({ message: "permission not found" });
         }
 
-        const user = await prisma.users.findFirst({
-            where: { id: userId }
-        })
-        if (!user) {
-            logger.error("deleted user permission api error user not found")
-            return res.status(responseStatus.not_found).json({ message: "user not found" })
+        const role = await prisma.roles.findFirst({
+            where: { id: roleId }
+        });
+        // valid role
+        if (!role) {
+            logger.error("add role permission api error role not found");
+            return res.status(responseStatus.not_found).json({ message: "role not found" });
         }
 
-        const userPermission = await prisma.user_permissions.findFirst({
-            where:{
-                user_id: userId,
+        const rolePermission = await prisma.role_permissions.findFirst({
+            where: {
+                role_id: roleId,
                 permissions_id: permission.id
             }
-        })
-        if (!userPermission) {
-            logger.error("deleted user permission not found")
-            return res.status(responseStatus.not_found).json({ message: "deleted user permission not found" })
+        });
+
+        
+        if (rolePermission) {
+            logger.error("permission is already init");
+            return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
         }
 
-        await prisma.user_permissions.delete({
-            where: { id: userPermission.id }
-        })
+        await prisma.role_permissions.create({
+            data: {
+                role_id: roleId,
+                permissions_id: permission.id
+            }
+        });
 
-        logger.info(`deleted ${user.username} permission: ${permissionName}`)
-        res.status(responseStatus.success).json({ message: "deleted user permission success" })
+        logger.info(`add role permission success role name: ${role.role_name}`);
+        res.status(responseStatus.success).json({ message: "role add permission success" });
     } catch (error) {
-        logger.error(`deleted user permission api error: ${error}`)
-        res.status(responseStatus.error).json({ message: "deleted user permission api error" })
+        logger.error(`add role permission api error: ${error}`);
+        res.status(responseStatus.error).json({ message: "add role permission api error" });
+    }
+}
+
+// delete role permission api
+export const deleteRolePermission = async (req: Request, res: Response) => {
+    try {
+        const { roleId, permissionName } = req.body;
+
+        const permission = await prisma.permissions.findFirst({
+            where: { permissions_name: permissionName }
+        });
+        if (!permission) {
+            logger.error("delete role permission api error permission not found");
+            return res.status(responseStatus.not_found).json({ message: "permission not found" });
+        }
+
+        const role = await prisma.roles.findFirst({
+            where: { id: roleId }
+        });
+        if (!role) {
+            logger.error("delete role permission api error role not found");
+            return res.status(responseStatus.not_found).json({ message: "role not found" });
+        }
+
+        const rolePermission = await prisma.role_permissions.findFirst({
+            where: {
+                role_id: roleId,
+                permissions_id: permission.id
+            }
+        });
+
+        if (!rolePermission) {
+            logger.error("delete role permission not found");
+            return res.status(responseStatus.not_found).json({ message: "role permission not found" });
+        }
+
+        await prisma.role_permissions.delete({
+            where: { id: rolePermission.id }
+        });
+
+        logger.info(`deleted permission ${permissionName} from role: ${role.role_name}`);
+        res.status(responseStatus.success).json({ message: "deleted role permission success" });
+    } catch (error) {
+        logger.error(`delete role permission api error: ${error}`);
+        res.status(responseStatus.error).json({ message: "delete role permission api error" });
     }
 }

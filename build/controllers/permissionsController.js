@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deletedUserPermission = exports.addUserPermission = exports.permissionList = exports.checkPermission = void 0;
+exports.deleteRolePermission = exports.addRolePermission = exports.UserRolePermission = exports.permissionList = exports.checkPermission = void 0;
 const client_1 = require("@prisma/client");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const logger_1 = __importDefault(require("../tools/logger"));
@@ -22,6 +22,7 @@ var responseStatus;
     responseStatus[responseStatus["error"] = 400] = "error";
     responseStatus[responseStatus["not_found"] = 404] = "not_found";
     responseStatus[responseStatus["success"] = 200] = "success";
+    responseStatus[responseStatus["conflict"] = 401] = "conflict";
 })(responseStatus || (responseStatus = {}));
 // vaild permission
 const checkPermission = (reqPermission) => (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
@@ -73,76 +74,122 @@ const permissionList = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.permissionList = permissionList;
-// add user permission api
-const addUserPermission = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+// role map 
+const UserRolePermission = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { userId, permissionName } = req.body;
-        const permission = yield prisma.permissions.findFirst({
-            where: { permissions_name: permissionName }
+        const allRoles = yield prisma.roles.findMany({
+            include: {
+                role_permissions: {
+                    include: {
+                        permissions: true,
+                    },
+                },
+            },
         });
-        if (!permission) {
-            logger_1.default.error("add user permission api error permission not found");
-            return res.status(responseStatus.not_found).json({ message: "permission not found" });
-        }
-        const user = yield prisma.users.findFirst({
-            where: { id: userId }
+        const data = allRoles.map(role => {
+            // 获取角色的所有权限
+            const rolePermissions = role.role_permissions.map(rp => ({
+                id: rp.permissions.id,
+                name: rp.permissions.permissions_name,
+            }));
+            // 去除重复权限
+            const uniquePermissions = Array.from(new Map(rolePermissions.map(p => [p.id, p])).values());
+            return {
+                id: role.id,
+                role_name: role.role_name,
+                permissions: uniquePermissions,
+            };
         });
-        if (!user) {
-            logger_1.default.error("add user permission api error user not found");
-            return res.status(responseStatus.not_found).json({ message: "user not found" });
-        }
-        yield prisma.user_permissions.create({
-            data: {
-                user_id: userId,
-                permissions_id: permission.id
-            }
-        });
-        logger_1.default.info(`add user permission success username: ${user.username}`);
-        res.status(responseStatus.success).json({ message: "user add permission success" });
+        res.status(responseStatus.success).json({ data });
     }
     catch (error) {
-        logger_1.default.error(`add user permission api error: ${error}`);
-        res.status(responseStatus.error).json({ message: "add user permission api error" });
+        res.status(responseStatus.error).json({ message: "mapRolePermission api error" });
     }
 });
-exports.addUserPermission = addUserPermission;
-// deleted user permission api
-const deletedUserPermission = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.UserRolePermission = UserRolePermission;
+// add role permission api
+const addRolePermission = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { userId, permissionName } = req.body;
+        const { roleId, permissionName } = req.body;
+        console.log(roleId, permissionName);
         const permission = yield prisma.permissions.findFirst({
             where: { permissions_name: permissionName }
         });
+        // valid permission
         if (!permission) {
-            logger_1.default.error("deleted user permission api error permission not found");
+            logger_1.default.error("add role permission api error permission not found");
             return res.status(responseStatus.not_found).json({ message: "permission not found" });
         }
-        const user = yield prisma.users.findFirst({
-            where: { id: userId }
+        const role = yield prisma.roles.findFirst({
+            where: { id: roleId }
         });
-        if (!user) {
-            logger_1.default.error("deleted user permission api error user not found");
-            return res.status(responseStatus.not_found).json({ message: "user not found" });
+        // valid role
+        if (!role) {
+            logger_1.default.error("add role permission api error role not found");
+            return res.status(responseStatus.not_found).json({ message: "role not found" });
         }
-        const userPermission = yield prisma.user_permissions.findFirst({
+        const rolePermission = yield prisma.role_permissions.findFirst({
             where: {
-                user_id: userId,
+                role_id: roleId,
                 permissions_id: permission.id
             }
         });
-        if (!userPermission) {
-            logger_1.default.error("deleted user permission not found");
-            return res.status(responseStatus.not_found).json({ message: "deleted user permission not found" });
+        if (rolePermission) {
+            logger_1.default.error("permission is already init");
+            return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
         }
-        yield prisma.user_permissions.delete({
-            where: { id: userPermission.id }
+        yield prisma.role_permissions.create({
+            data: {
+                role_id: roleId,
+                permissions_id: permission.id
+            }
         });
-        logger_1.default.info(`deleted ${user.username} permission: ${permissionName}`);
-        res.status(responseStatus.success).json({ message: "deleted user permission success" });
+        logger_1.default.info(`add role permission success role name: ${role.role_name}`);
+        res.status(responseStatus.success).json({ message: "role add permission success" });
     }
     catch (error) {
-        logger_1.default.error(`deleted user permission api error: ${error}`);
-        res.status(responseStatus.error).json({ message: "deleted user permission api error" });
+        logger_1.default.error(`add role permission api error: ${error}`);
+        res.status(responseStatus.error).json({ message: "add role permission api error" });
     }
 });
-exports.deletedUserPermission = deletedUserPermission;
+exports.addRolePermission = addRolePermission;
+// delete role permission api
+const deleteRolePermission = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { roleId, permissionName } = req.body;
+        const permission = yield prisma.permissions.findFirst({
+            where: { permissions_name: permissionName }
+        });
+        if (!permission) {
+            logger_1.default.error("delete role permission api error permission not found");
+            return res.status(responseStatus.not_found).json({ message: "permission not found" });
+        }
+        const role = yield prisma.roles.findFirst({
+            where: { id: roleId }
+        });
+        if (!role) {
+            logger_1.default.error("delete role permission api error role not found");
+            return res.status(responseStatus.not_found).json({ message: "role not found" });
+        }
+        const rolePermission = yield prisma.role_permissions.findFirst({
+            where: {
+                role_id: roleId,
+                permissions_id: permission.id
+            }
+        });
+        if (!rolePermission) {
+            logger_1.default.error("delete role permission not found");
+            return res.status(responseStatus.not_found).json({ message: "role permission not found" });
+        }
+        yield prisma.role_permissions.delete({
+            where: { id: rolePermission.id }
+        });
+        logger_1.default.info(`deleted permission ${permissionName} from role: ${role.role_name}`);
+        res.status(responseStatus.success).json({ message: "deleted role permission success" });
+    }
+    catch (error) {
+        logger_1.default.error(`delete role permission api error: ${error}`);
+        res.status(responseStatus.error).json({ message: "delete role permission api error" });
+    }
+});
+exports.deleteRolePermission = deleteRolePermission;

@@ -297,10 +297,12 @@ export const editPassword = [
     ...validpassword,
     async (req: Request, res: Response) => {
         try {
+            const errors = validationResult(req);
             const { data } = req.body
 
-            console.log(req.body);
-            
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ message: "valid error" });
+            }
 
             const user = await prisma.users.findFirst({ 
                 where: { id: data.Uid }

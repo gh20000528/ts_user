@@ -67,3 +67,161 @@ Argument `where` of type usersWhereUniqueInput needs at least one of `id` argume
 2024-05-20T04:22:22.776Z - error : user info api error: TokenExpiredError: jwt expired
 2024-05-20T06:37:28.748Z - error : user info api error: TokenExpiredError: jwt expired
 2024-05-20T07:37:56.542Z - error : user info api error: TokenExpiredError: jwt expired
+2024-05-20T09:13:00.812Z - error : user info api error
+2024-05-21T02:08:24.780Z - error : user info api error
+2024-05-21T03:12:52.500Z - error : user info api error
+2024-05-21T05:44:48.685Z - error : user info api error
+2024-05-21T06:46:14.830Z - error : user info api error
+2024-05-21T08:19:59.129Z - error : user info api error
+2024-05-21T10:43:48.794Z - error : user info api error
+2024-05-22T02:43:07.110Z - error : user info api error
+2024-05-22T02:44:17.121Z - error : user info api error
+2024-05-22T03:48:07.072Z - error : user info api error
+2024-05-22T04:04:01.552Z - error : deleted user permission not found
+2024-05-22T04:04:02.361Z - error : deleted user permission not found
+2024-05-22T04:06:06.194Z - error : deleted user permission not found
+2024-05-22T04:06:06.659Z - error : deleted user permission not found
+2024-05-22T04:06:06.815Z - error : deleted user permission not found
+2024-05-22T04:06:06.966Z - error : deleted user permission not found
+2024-05-22T04:06:07.131Z - error : deleted user permission not found
+2024-05-22T04:06:07.281Z - error : deleted user permission not found
+2024-05-22T04:06:07.488Z - error : deleted user permission not found
+2024-05-22T06:03:44.212Z - error : user info api error
+2024-05-22T07:07:57.219Z - error : user info api error
+2024-05-22T07:51:04.613Z - error : Permission is already assigned to this role
+2024-05-22T07:52:57.592Z - error : Permission is already assigned to this role
+2024-05-22T07:53:02.452Z - error : Permission is already assigned to this role
+2024-05-22T07:53:03.433Z - error : Permission is already assigned to this role
+2024-05-22T07:53:04.350Z - error : Permission is already assigned to this role
+2024-05-22T07:54:53.208Z - error : Permission is already assigned to this role
+2024-05-22T07:54:53.641Z - error : Permission is already assigned to this role
+2024-05-22T07:58:06.038Z - error : Permission is already assigned to this role
+2024-05-22T08:02:19.328Z - error : add role permission api error: PrismaClientKnownRequestError: 
+Invalid `prisma.role_permissions.create()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/permissionsController.js:141:39
+
+  138     logger_1.default.error("Permission is already assigned to this role");
+  139     return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
+  140 }
+→ 141 yield prisma.role_permissions.create(
+Unique constraint failed on the fields: (`id`)
+2024-05-22T08:06:46.775Z - error : add role permission api error: PrismaClientKnownRequestError: 
+Invalid `prisma.role_permissions.create()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/permissionsController.js:141:39
+
+  138     logger_1.default.error("Permission is already assigned to this role");
+  139     return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
+  140 }
+→ 141 yield prisma.role_permissions.create(
+Unique constraint failed on the fields: (`id`)
+2024-05-22T08:06:47.406Z - error : add role permission api error: PrismaClientKnownRequestError: 
+Invalid `prisma.role_permissions.create()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/permissionsController.js:141:39
+
+  138     logger_1.default.error("Permission is already assigned to this role");
+  139     return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
+  140 }
+→ 141 yield prisma.role_permissions.create(
+Unique constraint failed on the fields: (`id`)
+2024-05-22T08:06:48.256Z - error : add role permission api error: PrismaClientKnownRequestError: 
+Invalid `prisma.role_permissions.create()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/permissionsController.js:141:39
+
+  138     logger_1.default.error("Permission is already assigned to this role");
+  139     return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
+  140 }
+→ 141 yield prisma.role_permissions.create(
+Unique constraint failed on the fields: (`id`)
+2024-05-22T08:06:48.279Z - error : add role permission api error: PrismaClientKnownRequestError: 
+Invalid `prisma.role_permissions.create()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/permissionsController.js:141:39
+
+  138     logger_1.default.error("Permission is already assigned to this role");
+  139     return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
+  140 }
+→ 141 yield prisma.role_permissions.create(
+Unique constraint failed on the fields: (`id`)
+2024-05-22T08:06:49.309Z - error : add role permission api error: PrismaClientKnownRequestError: 
+Invalid `prisma.role_permissions.create()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/permissionsController.js:141:39
+
+  138     logger_1.default.error("Permission is already assigned to this role");
+  139     return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
+  140 }
+→ 141 yield prisma.role_permissions.create(
+Unique constraint failed on the fields: (`id`)
+2024-05-22T08:18:34.424Z - error : user info api error
+2024-05-22T10:21:55.064Z - error : login api error PrismaClientKnownRequestError: 
+Invalid `prisma.users.findFirst()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/userController.js:151:41
+
+  148     return res.status(401).json({ message: "Invalid captcha" });
+  149 }
+  150 delete captchaStore[captchaId];
+→ 151 const user = yield prisma.users.findFirst(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 9)
+2024-05-22T10:23:55.589Z - error : add role permission api error: PrismaClientKnownRequestError: 
+Invalid `prisma.role_permissions.create()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/permissionsController.js:142:39
+
+  139     logger_1.default.error("Permission is already assigned to this role");
+  140     return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
+  141 }
+→ 142 yield prisma.role_permissions.create(
+Unique constraint failed on the fields: (`id`)
+2024-05-22T10:54:27.288Z - error : add role permission api error: PrismaClientKnownRequestError: 
+Invalid `prisma.role_permissions.create()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/permissionsController.js:142:39
+
+  139     logger_1.default.error("Permission is already assigned to this role");
+  140     return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
+  141 }
+→ 142 yield prisma.role_permissions.create(
+Unique constraint failed on the fields: (`id`)
+2024-05-22T11:11:34.258Z - error : Permission is already assigned to this role
+2024-05-22T11:11:48.564Z - error : Permission is already assigned to this role
+2024-05-22T11:16:09.482Z - error : permission is already init
+2024-05-22T11:16:32.790Z - error : permission is already init
+2024-05-22T23:31:06.324Z - error : user info api error
+2024-05-23T07:12:01.354Z - error : user info api error
+2024-05-23T21:23:22.130Z - error : user info api error
+2024-05-24T01:43:37.543Z - error : permission is already init
+2024-05-24T01:43:51.051Z - error : add role permission api error: PrismaClientValidationError: 
+Invalid `prisma.role_permissions.create()` invocation in
+/Users/890528gh/Desktop/tools/user/build/controllers/permissionsController.js:141:39
+
+  138     logger_1.default.error("permission is already init");
+  139     return res.status(responseStatus.conflict).json({ message: "role already has this permission" });
+  140 }
+→ 141 yield prisma.role_permissions.create({
+        data: {
+          role_id: undefined,
+          permissions_id: 1,
+      +   permissions: {
+      +     create: permissionsCreateWithoutRole_permissionsInput | permissionsUncheckedCreateWithoutRole_permissionsInput,
+      +     connectOrCreate: permissionsCreateOrConnectWithoutRole_permissionsInput,
+      +     connect: permissionsWhereUniqueInput
+      +   }
+        }
+      })
+
+Argument `permissions` is missing.
+2024-05-24T01:43:56.990Z - error : permission is already init
+2024-05-24T01:51:22.992Z - error : permission is already init
+2024-05-24T01:55:04.657Z - error : permission is already init
+2024-05-24T01:55:10.122Z - error : permission is already init
+2024-05-24T01:55:43.234Z - error : permission is already init
+2024-05-24T01:55:50.616Z - error : permission is already init
+2024-05-24T01:55:54.974Z - error : permission is already init
+2024-05-24T02:18:09.540Z - error : permission is already init
+2024-05-24T02:18:14.299Z - error : permission is already init
+2024-05-24T02:18:15.476Z - error : permission is already init
+2024-05-24T02:28:37.722Z - error : permission is already init
+2024-05-24T02:42:43.957Z - error : user info api error
+2024-05-24T02:49:10.643Z - error : permission is already init
+2024-05-24T03:26:13.052Z - error : logout api error: no token provided
+2024-05-24T03:36:19.133Z - error : permission is already init
+2024-05-24T03:38:41.916Z - error : permission is already init
+2024-05-24T04:30:14.245Z - error : user info api error
+2024-05-24T06:30:52.133Z - error : user info api error
+2024-05-27T03:50:17.026Z - error : user info api error
